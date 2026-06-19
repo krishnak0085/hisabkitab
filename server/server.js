@@ -18,7 +18,12 @@ app.get("/", (req, res) => {
     message: "HisabKitab API Running 🚀",
   });
 });
-
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "HisabKitab API",
+  });
+});
 const authRoutes = require("./routes/authRoutes");
 
 app.use("/api/auth", authRoutes);
