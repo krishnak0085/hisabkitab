@@ -453,8 +453,9 @@ return doc;
       <thead>
         <tr className="border-b">
           <th className="text-left p-2">Date</th>
-          <th className="text-left p-2">Amount</th>
           <th className="text-left p-2">Description</th>
+            <th className="text-left p-2">Amount</th>
+          
           <th className="text-left p-2">Action</th>
         </tr>
       </thead>
@@ -465,14 +466,14 @@ return doc;
             <td className="p-2">
               {new Date(item.date).toLocaleDateString("en-IN")}
             </td>
-
+ <td className="p-2">
+              {item.description}
+            </td>
             <td className="p-2">
               ₹{item.amount}
             </td>
 
-            <td className="p-2">
-              {item.description}
-            </td>
+           
 
           <td className="p-2">
   <div className="flex gap-2">
@@ -513,8 +514,9 @@ return doc;
       <thead>
         <tr className="border-b">
           <th className="text-left p-2">Date</th>
-          <th className="text-left p-2">Amount</th>
           <th className="text-left p-2">Description</th>
+            <th className="text-left p-2">Amount</th>
+          
           <th className="text-left p-2">Action</th>
         </tr>
       </thead>
@@ -525,14 +527,14 @@ return doc;
             <td className="p-2">
               {new Date(item.date).toLocaleDateString("en-IN")}
             </td>
-
+             <td className="p-2">
+              {item.description}
+            </td>
             <td className="p-2">
               ₹{item.amount}
             </td>
 
-            <td className="p-2">
-              {item.description}
-            </td>
+           
 
             <td className="p-2">
   <div className="flex gap-2">
