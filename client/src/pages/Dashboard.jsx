@@ -278,9 +278,9 @@ const generatePDF = () => {
     headStyles: {
       fillColor: [40, 167, 69],
     },
-      columnStyles: {
-    2: { halign: "right" }, // Amount column
-  },
+    //   columnStyles: {
+    // 2: { halign: "right" }, // Amount column
+  // },
   });
 
   // DEBIT TABLE
