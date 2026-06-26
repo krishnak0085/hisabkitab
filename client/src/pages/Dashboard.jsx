@@ -272,12 +272,15 @@ const generatePDF = () => {
     head: [["Date", "Amount", "Description"]],
     body: creditEntries.map((item) => [
       new Date(item.date).toLocaleDateString("en-IN"),
-      `${item.amount}`,
       item.description,
+        `${item.amount}`,
     ]),
     headStyles: {
       fillColor: [40, 167, 69],
     },
+      columnStyles: {
+    2: { halign: "right" }, // Amount column
+  },
   });
 
   // DEBIT TABLE
@@ -292,8 +295,9 @@ const generatePDF = () => {
     head: [["Date", "Amount", "Description"]],
     body: debitEntries.map((item) => [
       new Date(item.date).toLocaleDateString("en-IN"),
-      `${item.amount}`,
       item.description,
+        `${item.amount}`,
+      
     ]),
     headStyles: {
       fillColor: [220, 53, 69],
