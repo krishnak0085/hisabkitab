@@ -269,7 +269,7 @@ const generatePDF = () => {
 
   autoTable(doc, {
     startY: 85,
-    head: [["Date", "Amount", "Description"]],
+    head: [["Date", "Description","Amount"]],
     body: creditEntries.map((item) => [
       new Date(item.date).toLocaleDateString("en-IN"),
       item.description,
@@ -292,7 +292,7 @@ const generatePDF = () => {
 
   autoTable(doc, {
     startY: finalY + 5,
-    head: [["Date", "Amount", "Description"]],
+    head: [["Date", "Description", "Amount"]],
     body: debitEntries.map((item) => [
       new Date(item.date).toLocaleDateString("en-IN"),
       item.description,
