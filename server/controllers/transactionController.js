@@ -60,51 +60,167 @@ const transactions = await Transaction.find(query)
   }
 };
 
+// const getLedgerSummary = async (req, res) => {
+//   try {
+//     const { date } = req.query;
+
+//     const selectedDate = new Date(date);
+
+//     const previousTransactions =
+//       await Transaction.find({
+//         userId: req.user._id,
+//         date: { $lt: selectedDate },
+//       });
+
+//     let openingBalance = 0;
+
+//     previousTransactions.forEach((t) => {
+//       if (t.type === "credit")
+//         openingBalance += t.amount;
+//       else openingBalance -= t.amount;
+//     });
+
+//     const endDate = new Date(selectedDate);
+//     endDate.setDate(endDate.getDate() + 1);
+
+//     const currentTransactions =
+//       await Transaction.find({
+//         userId: req.user._id,
+//         date: {
+//           $gte: selectedDate,
+//           $lt: endDate,
+//         },
+//       });
+
+//     let totalCredit = 0;
+//     let totalDebit = 0;
+
+//     currentTransactions.forEach((t) => {
+//       if (t.type === "credit")
+//         totalCredit += t.amount;
+//       else totalDebit += t.amount;
+//     });
+
+//     const closingBalance =
+//       openingBalance +
+//       totalCredit -
+//       totalDebit;
+
+//     res.json({
+//       openingBalance,
+//       totalCredit,
+//       totalDebit,
+//       closingBalance,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       message: error.message,
+//     });
+//   }
+// };
 const getLedgerSummary = async (req, res) => {
   try {
     const { date } = req.query;
 
     const selectedDate = new Date(date);
 
-    const previousTransactions =
-      await Transaction.find({
-        userId: req.user._id,
-        date: { $lt: selectedDate },
-      });
-
-    let openingBalance = 0;
-
-    previousTransactions.forEach((t) => {
-      if (t.type === "credit")
-        openingBalance += t.amount;
-      else openingBalance -= t.amount;
-    });
-
     const endDate = new Date(selectedDate);
     endDate.setDate(endDate.getDate() + 1);
 
-    const currentTransactions =
-      await Transaction.find({
-        userId: req.user._id,
-        date: {
-          $gte: selectedDate,
-          $lt: endDate,
+    const result = await Transaction.aggregate([
+      {
+        $match: {
+          userId: req.user._id,
         },
-      });
+      },
+      {
+        $facet: {
+          opening: [
+            {
+              $match: {
+                date: { $lt: selectedDate },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                credit: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$type", "credit"] },
+                      "$amount",
+                      0,
+                    ],
+                  },
+                },
+                debit: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$type", "debit"] },
+                      "$amount",
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ],
 
-    let totalCredit = 0;
-    let totalDebit = 0;
+          current: [
+            {
+              $match: {
+                date: {
+                  $gte: selectedDate,
+                  $lt: endDate,
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalCredit: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$type", "credit"] },
+                      "$amount",
+                      0,
+                    ],
+                  },
+                },
+                totalDebit: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$type", "debit"] },
+                      "$amount",
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    ]);
 
-    currentTransactions.forEach((t) => {
-      if (t.type === "credit")
-        totalCredit += t.amount;
-      else totalDebit += t.amount;
-    });
+    const openingData = result[0].opening[0] || {
+      credit: 0,
+      debit: 0,
+    };
+
+    const currentData = result[0].current[0] || {
+      totalCredit: 0,
+      totalDebit: 0,
+    };
+
+    const openingBalance =
+      openingData.credit - openingData.debit;
+
+    const totalCredit = currentData.totalCredit;
+    const totalDebit = currentData.totalDebit;
 
     const closingBalance =
-      openingBalance +
-      totalCredit -
-      totalDebit;
+      openingBalance + totalCredit - totalDebit;
 
     res.json({
       openingBalance,
@@ -112,7 +228,10 @@ const getLedgerSummary = async (req, res) => {
       totalDebit,
       closingBalance,
     });
+
   } catch (error) {
+    console.error("Ledger Summary Error:", error);
+
     res.status(500).json({
       message: error.message,
     });
