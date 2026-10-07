@@ -84,13 +84,61 @@ const [form, setForm] = useState({
   date: new Date().toISOString().split("T")[0], // Default to today's date
 });
 
-const handleSave = async () => {
+// const handleSave = async () => {
+//   try {
+//     setLoading(true);
+
+//     const token = localStorage.getItem("token");
+
+//     if (editingId) {
+//       await API.put(
+//         `/transactions/${editingId}`,
+//         form,
+//         {
+//           headers: {
+//             Authorization: `Bearer ${token}`,
+//           },
+//         }
+//       );
+//     } else {
+//       await API.post(
+//         "/transactions",
+//         form,
+//         {
+//           headers: {
+//             Authorization: `Bearer ${token}`,
+//           },
+//         }
+//       );
+//     }
+
+//     setForm({
+//       date: new Date().toISOString().split("T")[0],
+//       type: "credit",
+//       amount: "",
+//       description: "",
+//     });
+
+//     setEditingId(null);
+//     setShowEditModal(false);
+//     // fetchSummary();
+//     fetchTransactions();
+//     fetchLedgerSummary();
+//   } catch (error) {
+//     console.log(error);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+    const handleSave = async () => {
   try {
     setLoading(true);
 
     const token = localStorage.getItem("token");
 
     if (editingId) {
+      // EDIT EXISTING TRANSACTION
       await API.put(
         `/transactions/${editingId}`,
         form,
@@ -100,8 +148,17 @@ const handleSave = async () => {
           },
         }
       );
+
+      // For edit, refresh data because old amount/type
+      // also needs to be removed from the totals.
+      await Promise.all([
+        fetchTransactions(),
+        fetchLedgerSummary(),
+      ]);
+
     } else {
-      await API.post(
+      // ADD NEW TRANSACTION
+      const res = await API.post(
         "/transactions",
         form,
         {
@@ -110,6 +167,44 @@ const handleSave = async () => {
           },
         }
       );
+
+      const newTransaction = res.data.transaction;
+
+      // If the new entry belongs to the currently selected date,
+      // update the screen immediately without another GET request.
+      if (form.date === selectedDate) {
+
+        setTransactions((prev) => [
+          newTransaction,
+          ...prev,
+        ]);
+
+        setLedgerSummary((prev) => {
+          const amount = Number(form.amount);
+
+          if (form.type === "credit") {
+            return {
+              ...prev,
+              totalCredit: prev.totalCredit + amount,
+              closingBalance: prev.closingBalance + amount,
+            };
+          } else {
+            return {
+              ...prev,
+              totalDebit: prev.totalDebit + amount,
+              closingBalance: prev.closingBalance - amount,
+            };
+          }
+        });
+
+      } else {
+        // If entry date is different from selected date,
+        // refresh because the visible ledger may not contain it.
+        await Promise.all([
+          fetchTransactions(),
+          fetchLedgerSummary(),
+        ]);
+      }
     }
 
     setForm({
@@ -121,9 +216,7 @@ const handleSave = async () => {
 
     setEditingId(null);
     setShowEditModal(false);
-    // fetchSummary();
-    fetchTransactions();
-    fetchLedgerSummary();
+
   } catch (error) {
     console.log(error);
   } finally {
