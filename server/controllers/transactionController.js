@@ -390,7 +390,6 @@ const deleteTransaction = async (req, res) => {
     });
   }
 };
-transactionSchema.index({ userId: 1, date: -1 });
 module.exports = {
   addTransaction,
   getTransactions,
