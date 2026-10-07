@@ -44,9 +44,12 @@ if (date) {
   };
 }
 
+// const transactions = await Transaction.find(query)
+//   .sort({ date: -1 });
 const transactions = await Transaction.find(query)
-  .sort({ date: -1 });
-
+  .sort({ date: -1 })
+  .lean();
+    
     res.json({
       success: true,
       count: transactions.length,
@@ -237,39 +240,97 @@ const getLedgerSummary = async (req, res) => {
     });
   }
 };
+// const getSummary = async (req, res) => {
+//   try {
+//     const transactions = await Transaction.find({
+//       userId: req.user._id,
+//     });
+
+//     let totalCredit = 0;
+//     let totalDebit = 0;
+
+//     transactions.forEach((item) => {
+//       if (item.type === "credit") {
+//         totalCredit += item.amount;
+//       } else {
+//         totalDebit += item.amount;
+//       }
+//     });
+
+//     const balance = totalCredit - totalDebit;
+
+//     res.json({
+//       success: true,
+//       totalCredit,
+//       totalDebit,
+//       balance,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
 const getSummary = async (req, res) => {
   try {
-    const transactions = await Transaction.find({
-      userId: req.user._id,
-    });
+    const result = await Transaction.aggregate([
+      {
+        $match: {
+          userId: req.user._id,
+        },
+      },
+      {
+        $group: {
+          _id: null,
 
-    let totalCredit = 0;
-    let totalDebit = 0;
+          totalCredit: {
+            $sum: {
+              $cond: [
+                { $eq: ["$type", "credit"] },
+                "$amount",
+                0,
+              ],
+            },
+          },
 
-    transactions.forEach((item) => {
-      if (item.type === "credit") {
-        totalCredit += item.amount;
-      } else {
-        totalDebit += item.amount;
-      }
-    });
+          totalDebit: {
+            $sum: {
+              $cond: [
+                { $eq: ["$type", "debit"] },
+                "$amount",
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
 
-    const balance = totalCredit - totalDebit;
+    const data = result[0] || {
+      totalCredit: 0,
+      totalDebit: 0,
+    };
+
+    const balance =
+      data.totalCredit - data.totalDebit;
 
     res.json({
       success: true,
-      totalCredit,
-      totalDebit,
+      totalCredit: data.totalCredit,
+      totalDebit: data.totalDebit,
       balance,
     });
+
   } catch (error) {
+    console.error("Summary Error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 const updateTransaction = async (req, res) => {
   try {
     const transaction = await Transaction.findOne({
@@ -329,7 +390,7 @@ const deleteTransaction = async (req, res) => {
     });
   }
 };
-
+transactionSchema.index({ userId: 1, date: -1 });
 module.exports = {
   addTransaction,
   getTransactions,
